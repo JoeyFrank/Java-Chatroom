@@ -2,11 +2,21 @@ package server;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
+import org.json.simple.*;
+import org.json.simple.parser.JSONParser;
 
 public class EchoServer
 {
+    public static final int MAXCLIENTS = 3;
+
+    public static ArrayList<ClientThread> clients = new ArrayList<>(); //clients in system
+    public static ArrayList<User> validUsers = new ArrayList<>(); //valid client names
+
 	public static void main(String args[])
 	{
+        loadUsers();
+
 		try
 		{
 			ServerSocket echoServer = new ServerSocket(16471);
@@ -16,22 +26,33 @@ public class EchoServer
 			{
 				Socket s = echoServer.accept(); //blocks until client connects
                 System.out.println("Client Connected.");
-//                ClientThread client = new ClientThread(s);
-//                client.start();
 
-				//here we make a new thread for client
-				BufferedReader ins = new BufferedReader(new InputStreamReader(s.getInputStream())); //message from client
-				PrintStream outs = new PrintStream(s.getOutputStream()); //output to client
-				String line = ins.readLine(); //reads input from the client
-				outs.println("Message Sent -  " + line);
-				s.close();
-				System.out.println("Client Closed.");
+                //here we make a new thread for client
+                ClientThread client = new ClientThread(s);
+                clients.add(client); //add client list so we can keep track of all clients
+                client.start();
 			}
 		}
 		catch (IOException e)
 		{
 			System.out.println(e);
 		}
+	}
+
+
+	public static void loadUsers() {
+	    try{
+            Object obj = new JSONParser().parse(new FileReader("users.json"));
+            JSONArray userJSON = (JSONArray)obj;
+
+            for(int i = 0; i < 4; i++){
+                JSONObject userObj = (JSONObject) userJSON.get(i);
+                validUsers.add(new User((String)userObj.get("username"), (String)userObj.get("password")));
+            }
+
+        } catch (Exception e){
+	        System.out.println(e);
+        }
 	}
 }
 
