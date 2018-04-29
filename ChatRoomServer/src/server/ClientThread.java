@@ -31,16 +31,11 @@ public class ClientThread extends Thread {
             while (true) {
                 String line = ins.readLine(); //waits for input from the client
                 parseCommand(line);
-                //System.out.println("> Client: " + line);
-                //outs.println("Message Sent -  " + line);
             }
-
-            //socket.close();
-            //System.out.println("Client Closed.");
 
         } catch (Exception e) {
             //this will happen on disconnection, so you can do user cleanup here
-            System.out.println(this.username + "left");
+            EchoServer.serverMessage(this.username + " left");
             EchoServer.clients.remove(this);
         }
     }
@@ -48,17 +43,17 @@ public class ClientThread extends Thread {
     private void parseCommand(String input) {
         String[] tokens = input.split(" ");
 
-        if (!tokens[0].equals("login") && !isLoggedIn) {
+        if (!tokens[0].equalsIgnoreCase("login") && !isLoggedIn) {
             outs.println("Denied. Please login first.");
         }
 
-        switch (tokens[0]) {
+        switch (tokens[0].toLowerCase()) {
             case "login":
                 login(tokens);
                 break;
 
             case "send":
-                sendMessage();
+                sendMessage(tokens);
                 break;
 
             case "who":
@@ -87,9 +82,11 @@ public class ClientThread extends Thread {
         for(User user : EchoServer.validUsers){
             if (user.username.equals(this.username)){
                 if(user.password.equals(input[2])){
-                    System.out.println(user.username + " login");
                     outs.println("Login Confirmed");
+                    setUsername(user.username);
                     this.isLoggedIn = true;
+                    EchoServer.serverMessage(this.username + " login");
+                    EchoServer.sendToAll(this, this.username + " joined");
                     return;
                 }
             }
@@ -98,8 +95,28 @@ public class ClientThread extends Thread {
         outs.println("Invalid Username or Password");
     }
 
-    private void sendMessage() {
-        System.out.println("send message command");
+    private void sendMessage(String[] input) {
+        EchoServer.serverMessage("send message command");
+
+        if(input.length < 3){
+            outs.println("Usage: send [username/all] [message]");
+        }
+
+        String message = this.username + ":";
+        for(int i = 2; i < input.length; i++){
+            message += " " + input[i];
+        }
+
+        if(input[1].equalsIgnoreCase("all")){
+            EchoServer.sendToAll(this, message);
+        } else {
+            boolean success = EchoServer.sendToUser(input[1], message);
+            if(success){
+                return;
+            }
+
+            outs.println("Could not find user.");
+        }
     }
 
     private void listUsers() {
@@ -113,15 +130,15 @@ public class ClientThread extends Thread {
     }
 
     private void logout() {
-        System.out.println("logout command");
+        EchoServer.serverMessage("logout command");
     }
 
     private void invalidInput() {
-        System.out.println("invalid command");
+        EchoServer.serverMessage("Invalid command");
     }
 
-    public void recieveMessage() {
-        System.out.println("login command");
+    public void recieveMessage(String message) {
+        outs.println(message);
     }
 
     public void setUsername(String username){

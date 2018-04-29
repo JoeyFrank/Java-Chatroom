@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import org.json.simple.*;
 import org.json.simple.parser.JSONParser;
 
-public class EchoServer
-{
+public class EchoServer {
+
     public static final int MAXCLIENTS = 3;
 
     public static ArrayList<ClientThread> clients = new ArrayList<>(); //clients in system
@@ -15,15 +15,14 @@ public class EchoServer
 
 	public static void main(String args[])
 	{
-        loadUsers();
+        loadUsers(); //load up users to verify login credentials
 
-		try
-		{
+		try {
 			ServerSocket echoServer = new ServerSocket(16471);
-			//Try not to use port number < 2000. 
-			System.out.println("Waiting for a client to connect..."); 
-			while (true)
-			{
+			System.out.println("My chat room server. Version Two.");
+
+			//client connection loop
+			while(true) {
 				Socket s = echoServer.accept(); //blocks until client connects
                 System.out.println("Client Connected.");
 
@@ -33,8 +32,7 @@ public class EchoServer
                 client.start();
 			}
 		}
-		catch (IOException e)
-		{
+		catch (IOException e) {
 			System.out.println(e);
 		}
 	}
@@ -54,6 +52,29 @@ public class EchoServer
 	        System.out.println(e);
         }
 	}
+
+	public static void serverMessage(String message){
+	    System.out.println("> " + message);
+    }
+
+    public static void sendToAll(ClientThread sender, String message){
+        for(ClientThread client : EchoServer.clients){
+            if(client != sender){
+                client.recieveMessage(message);
+            }
+        }
+    }
+
+    public static boolean sendToUser(String recipient, String message){
+        for(ClientThread client : EchoServer.clients){
+            if(client.username.equals(recipient)){
+                client.recieveMessage(message);
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
 

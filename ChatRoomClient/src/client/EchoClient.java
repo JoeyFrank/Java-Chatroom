@@ -26,7 +26,8 @@ public class EchoClient
                 public void run(){
                     try {
                         while (true) {
-                            System.out.println(ins.readLine()); //server confirmation
+                            String serverMessage = ins.readLine();
+                            System.out.println("> " + serverMessage); //server messages
                         }
                     } catch (Exception e) {
                         System.out.println(e);
@@ -37,10 +38,9 @@ public class EchoClient
 
             //user input loop
             while(true) {
-                System.out.print("> ");
+                //System.out.print("> ");
                 String line = stdin.readLine(); //read input on client end
                 outs.println(line); //send input to server
-                //System.out.println("Server says: " + ins.readLine());
             }
 			
 			//echoClient.close();
