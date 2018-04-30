@@ -22,25 +22,31 @@ public class EchoClient
 			BufferedReader ins = new BufferedReader(new InputStreamReader(echoClient.getInputStream())); //messages from server
 
             //listen for any incoming message from server
-            Thread serverMessageListener = new Thread(){
-                public void run(){
-                    try {
-                        while (true) {
-                            String serverMessage = ins.readLine();
-                            System.out.println("> " + serverMessage); //server messages
+            Thread serverMessageListener = new Thread(() -> {
+                try {
+                    while (true) {
+                        String serverMessage = ins.readLine();
+                        if(serverMessage == null){
+                            echoClient.close();
+                            System.exit(0);
+                            return;
                         }
-                    } catch (Exception e) {
-                        System.out.println(e);
+
+                        System.out.println("> " + serverMessage); //server messages
                     }
+                } catch (Exception e) {
+                    System.out.println(e);
                 }
-            };
+            });
             serverMessageListener.start();
 
             //user input loop
             while(true) {
-                //System.out.print("> ");
                 String line = stdin.readLine(); //read input on client end
                 outs.println(line); //send input to server
+                if(echoClient.isClosed()){
+                    return;
+                }
             }
 			
 			//echoClient.close();

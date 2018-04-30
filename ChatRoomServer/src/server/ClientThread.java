@@ -2,18 +2,17 @@ package server;
 
 import java.io.*;
 import java.net.*;
-import java.nio.Buffer;
-import java.util.ArrayList;
-import java.util.StringTokenizer;
 
 public class ClientThread extends Thread {
 
-    Socket socket;
-    boolean isLoggedIn = false;
-    String username = null;
+    public String username = null;
 
-    BufferedReader ins; //from client
-    PrintStream outs; //to client
+    private boolean isLoggedIn = false;
+    private boolean logoutRequested = false;
+
+    private Socket socket;
+    private BufferedReader ins; //from client
+    private PrintStream outs; //to client
 
     public ClientThread(Socket socket) {
         this.socket = socket;
@@ -31,20 +30,39 @@ public class ClientThread extends Thread {
             while (true) {
                 String line = ins.readLine(); //waits for input from the client
                 parseCommand(line);
+                if(logoutRequested){
+                    socket.close();
+                    throw new Exception(); //will trigger user logout
+                }
             }
 
         } catch (Exception e) {
-            //this will happen on disconnection, so you can do user cleanup here
-            EchoServer.serverMessage(this.username + " left");
-            EchoServer.clients.remove(this);
+            //cleanup for all user disconnection handled the same through exceptions
+            if(this.isLoggedIn) {
+                EchoServer.serverMessage(this.username + " left");
+                EchoServer.sendToAll(this, this.username + " left");
+                EchoServer.clients.remove(this);
+                EchoServer.clientDisconnected();
+            }
+            return;
         }
     }
 
     private void parseCommand(String input) {
+        if(input == null){
+            invalidInput();
+            return;
+        }
+
         String[] tokens = input.split(" ");
+        if(tokens == null || tokens.length == 0){
+            invalidInput();
+            return;
+        }
 
         if (!tokens[0].equalsIgnoreCase("login") && !isLoggedIn) {
             outs.println("Denied. Please login first.");
+            return;
         }
 
         switch (tokens[0].toLowerCase()) {
@@ -70,24 +88,42 @@ public class ClientThread extends Thread {
     }
 
     private void login(String[] input) {
-        //System.out.println("login command");
-
-        if (input.length < 3) {
-            outs.println("Invalid Login.");
+        //stop user from logging in twice
+        if(this.isLoggedIn){
+            outs.println("You are already logged in");
             return;
         }
 
-        setUsername(input[1]);
+        //check for invalid usage
+        if (input.length < 3) {
+            outs.println("Invalid Login - Usage: login [username] [password]");
+            return;
+        }
 
         for(User user : EchoServer.validUsers){
-            if (user.username.equals(this.username)){
+            if (user.username.equals(input[1])){
                 if(user.password.equals(input[2])){
-                    outs.println("Login Confirmed");
-                    setUsername(user.username);
-                    this.isLoggedIn = true;
-                    EchoServer.serverMessage(this.username + " login");
-                    EchoServer.sendToAll(this, this.username + " joined");
-                    return;
+                    if(!user.isLoggedIn) {
+                        if (EchoServer.clientConnected()) {
+                            setUsername(input[1]);
+                            outs.println("Login Confirmed");
+                            setUsername(user.username);
+                            this.isLoggedIn = true;
+                            user.isLoggedIn = true;
+
+                            EchoServer.clients.add(this); //add client list so we can keep track of all clients
+                            EchoServer.serverMessage(this.username + " login");
+                            EchoServer.sendToAll(this, this.username + " joined");
+                            return;
+                        } else {
+                            outs.println("Chat room full, disconnecting");
+                            this.logoutRequested = true;
+                            return;
+                        }
+                    } else {
+                        outs.println("User account already logged in");
+                        return;
+                    }
                 }
             }
         }
@@ -96,22 +132,26 @@ public class ClientThread extends Thread {
     }
 
     private void sendMessage(String[] input) {
-        EchoServer.serverMessage("send message command");
 
         if(input.length < 3){
-            outs.println("Usage: send [username/all] [message]");
+            outs.println("Invalid send - Usage: send [username/all] [message]");
+            return;
         }
 
         String message = this.username + ":";
+        String serverDialog = this.username + " (to " + input[1] + "):";
         for(int i = 2; i < input.length; i++){
             message += " " + input[i];
+            serverDialog += " " + input[i];
         }
 
         if(input[1].equalsIgnoreCase("all")){
             EchoServer.sendToAll(this, message);
+            EchoServer.serverMessage(message);
         } else {
             boolean success = EchoServer.sendToUser(input[1], message);
             if(success){
+                EchoServer.serverMessage(serverDialog);
                 return;
             }
 
@@ -130,15 +170,18 @@ public class ClientThread extends Thread {
     }
 
     private void logout() {
-        EchoServer.serverMessage("logout command");
+        outs.println("Disconnected");
+        logoutRequested = true;
     }
 
     private void invalidInput() {
-        EchoServer.serverMessage("Invalid command");
+        outs.println("Invalid command");
     }
 
-    public void recieveMessage(String message) {
-        outs.println(message);
+    public void receiveMessage(String message) {
+        if(isLoggedIn) {
+            outs.println(message);
+        }
     }
 
     public void setUsername(String username){

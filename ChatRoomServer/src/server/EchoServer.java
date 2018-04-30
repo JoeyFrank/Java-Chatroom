@@ -8,7 +8,8 @@ import org.json.simple.parser.JSONParser;
 
 public class EchoServer {
 
-    public static final int MAXCLIENTS = 3;
+    private static final int MAX_CLIENTS = 3;
+    private static int numConnectedClients = 0;
 
     public static ArrayList<ClientThread> clients = new ArrayList<>(); //clients in system
     public static ArrayList<User> validUsers = new ArrayList<>(); //valid client names
@@ -24,11 +25,10 @@ public class EchoServer {
 			//client connection loop
 			while(true) {
 				Socket s = echoServer.accept(); //blocks until client connects
-                System.out.println("Client Connected.");
+                //System.out.println("Client Connected.");
 
                 //here we make a new thread for client
                 ClientThread client = new ClientThread(s);
-                clients.add(client); //add client list so we can keep track of all clients
                 client.start();
 			}
 		}
@@ -54,13 +54,13 @@ public class EchoServer {
 	}
 
 	public static void serverMessage(String message){
-	    System.out.println("> " + message);
+	    System.out.println(message);
     }
 
     public static void sendToAll(ClientThread sender, String message){
         for(ClientThread client : EchoServer.clients){
             if(client != sender){
-                client.recieveMessage(message);
+                client.receiveMessage(message);
             }
         }
     }
@@ -68,12 +68,25 @@ public class EchoServer {
     public static boolean sendToUser(String recipient, String message){
         for(ClientThread client : EchoServer.clients){
             if(client.username.equals(recipient)){
-                client.recieveMessage(message);
+                client.receiveMessage(message);
                 return true;
             }
         }
 
         return false;
+    }
+
+    public static boolean clientConnected(){
+	    if(numConnectedClients < MAX_CLIENTS) {
+            numConnectedClients++;
+            return true;
+        } else {
+	        return false;
+        }
+    }
+
+    public static void clientDisconnected(){
+	    numConnectedClients--;
     }
 }
 
