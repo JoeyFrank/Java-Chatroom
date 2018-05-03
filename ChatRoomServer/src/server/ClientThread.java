@@ -30,7 +30,7 @@ public class ClientThread extends Thread {
             //listening for client messages
             while (true) {
                 String line = ins.readLine(); //waits for input from the client
-                parseCommand(line);
+                parseCommand(line); //parse input
                 if(logoutRequested || line == null){
                     socket.close();
                     throw new Exception(); //will trigger user logout
@@ -50,23 +50,27 @@ public class ClientThread extends Thread {
         }
     }
 
+    //parse all commands passed to the server from client
     private void parseCommand(String input) {
         if(input == null){
             invalidInput();
             return;
         }
 
+        //split input into array
         String[] tokens = input.split(" ");
         if(tokens == null || tokens.length == 0){
             invalidInput();
             return;
         }
 
+        //if user not logged in ignore command
         if (!tokens[0].equalsIgnoreCase("login") && !isLoggedIn) {
             outs.println("Denied. Please login first.");
             return;
         }
 
+        //check on available commands
         switch (tokens[0].toLowerCase()) {
             case "login":
                 login(tokens);
@@ -89,6 +93,7 @@ public class ClientThread extends Thread {
         }
     }
 
+    //log a user into the chatroom
     private void login(String[] input) {
         //stop user from logging in twice
         if(this.isLoggedIn){
@@ -102,6 +107,7 @@ public class ClientThread extends Thread {
             return;
         }
 
+        //authenticate
         for(User user : EchoServer.validUsers){
             if (user.username.equals(input[1])){
                 if(user.password.equals(input[2])){
@@ -134,6 +140,7 @@ public class ClientThread extends Thread {
         outs.println("Invalid Username or Password");
     }
 
+    //send a message, will handle all or specific user
     private void sendMessage(String[] input) {
 
         if(input.length < 3){
@@ -149,10 +156,12 @@ public class ClientThread extends Thread {
         }
 
         if(input[1].equalsIgnoreCase("all")){
+            //send to all
             message = this.username + ":" + message;
             EchoServer.sendToAll(this, message);
             EchoServer.serverMessage(message);
         } else {
+            //send to one user
             message = this.username + " (to you):" + message;
             boolean success = EchoServer.sendToUser(input[1], message);
             if(success){
@@ -164,6 +173,7 @@ public class ClientThread extends Thread {
         }
     }
 
+    //list users in system
     private void listUsers(String[] input) {
         if(input.length > 1){
             outs.println("Invalid - 'who' takes no arguments");
@@ -179,6 +189,7 @@ public class ClientThread extends Thread {
         outs.println(usernames);
     }
 
+    //logout from server
     private void logout(String[] input) {
         if(input.length > 1){
             outs.println("Invalid - 'logout' takes no arguments");
@@ -189,10 +200,12 @@ public class ClientThread extends Thread {
         logoutRequested = true;
     }
 
+    //error message for invalid input
     private void invalidInput() {
         outs.println("Invalid command");
     }
 
+    //receive a message from server
     public void receiveMessage(String message) {
         if(isLoggedIn) {
             outs.println(message);

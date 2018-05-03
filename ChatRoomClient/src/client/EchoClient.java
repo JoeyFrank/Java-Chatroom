@@ -3,6 +3,18 @@ package client;
 import java.io.*;
 import java.net.*;
 
+/*
+Joseph Frank
+May 2, 2018
+
+Description:
+    This is the client component for a client-server chat room project for Computer Networks 1. This client sends
+    user messages up to the server, and receives all incoming messages from the server. All command checking and
+    authentication done on server. This application starts a new thread to listen for incoming messages, while also
+    waiting for user input.
+
+ */
+
 public class EchoClient
 {
 	public static void main(String args[])
@@ -26,6 +38,8 @@ public class EchoClient
                 try {
                     while (true) {
                         String serverMessage = ins.readLine();
+
+                        //if message is null the server is no longer available, so exit
                         if(serverMessage == null){
                             echoClient.close();
                             System.exit(0);
@@ -48,8 +62,6 @@ public class EchoClient
                     return;
                 }
             }
-			
-			//echoClient.close();
 		}
 		catch (IOException e)
 		{

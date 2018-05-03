@@ -4,6 +4,17 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
+/*
+Joseph Frank
+May 2, 2018
+
+Description:
+    This is the server component for a client-server chat room project for Computer Networks 1. This server handles
+    all incoming clients by starting a new thread per client. The client has the ability to login, send messages to all
+    or one user, list users in chat room, and logout.
+
+ */
+
 public class EchoServer {
 
     private static final int MAX_CLIENTS = 3;
@@ -23,7 +34,6 @@ public class EchoServer {
 			//client connection loop
 			while(true) {
 				Socket s = echoServer.accept(); //blocks until client connects
-                //System.out.println("Client Connected.");
 
                 //here we make a new thread for client
                 ClientThread client = new ClientThread(s);
@@ -36,17 +46,18 @@ public class EchoServer {
 	}
 
 
+	//helper function to load user authentication data into sever, all data stored in users.txt
 	public static void loadUsers() {
 	    try {
 	        BufferedReader in = new BufferedReader(new FileReader("users.txt"));
 	        String username;
 	        String password;
 
+            //get all users in file, add to validUsers array
             for(int i = 0; i < 4; i++){
                 username = in.readLine();
                 password = in.readLine();
                 validUsers.add(new User(username, password));
-                //System.out.println("New user added: " + username + " " + password);
             }
 
         } catch (Exception e){
@@ -54,12 +65,12 @@ public class EchoServer {
         }
 	}
 
-
+    //output to server log
 	public static void serverMessage(String message){
 	    System.out.println(message);
     }
 
-
+    //send a message to all users
     public static void sendToAll(ClientThread sender, String message){
         for(ClientThread client : EchoServer.clients){
             if(client != sender){
@@ -68,7 +79,7 @@ public class EchoServer {
         }
     }
 
-
+    //send a message to a specific user
     public static boolean sendToUser(String recipient, String message){
         for(ClientThread client : EchoServer.clients){
             if(client.username.equals(recipient)){
@@ -80,7 +91,7 @@ public class EchoServer {
         return false;
     }
 
-
+    //see if you can add client without hitting max clients
     public static boolean clientConnected(){
 	    if(numConnectedClients < MAX_CLIENTS) {
             numConnectedClients++;
@@ -90,7 +101,7 @@ public class EchoServer {
         }
     }
 
-
+    //decrement connected client count
     public static void clientDisconnected(){
 	    numConnectedClients--;
     }
