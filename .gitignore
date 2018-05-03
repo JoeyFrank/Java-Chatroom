@@ -24,3 +24,5 @@ hs_err_pid*
 # Other
 .DS_Store
 .idea
+out
+META-INF
