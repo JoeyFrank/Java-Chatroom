@@ -21,7 +21,7 @@ public class EchoClient
 			PrintStream outs = new PrintStream(echoClient.getOutputStream()); //output to the server
 			BufferedReader ins = new BufferedReader(new InputStreamReader(echoClient.getInputStream())); //messages from server
 
-            //listen for any incoming message from server
+            //launch a thread to listen for any incoming message from server
             Thread serverMessageListener = new Thread(() -> {
                 try {
                     while (true) {

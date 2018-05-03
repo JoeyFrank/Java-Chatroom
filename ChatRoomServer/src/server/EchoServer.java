@@ -3,8 +3,6 @@ package server;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import org.json.simple.*;
-import org.json.simple.parser.JSONParser;
 
 public class EchoServer {
 
@@ -39,13 +37,16 @@ public class EchoServer {
 
 
 	public static void loadUsers() {
-	    try{
-            Object obj = new JSONParser().parse(new FileReader("users.json"));
-            JSONArray userJSON = (JSONArray)obj;
+	    try {
+	        BufferedReader in = new BufferedReader(new FileReader("users.txt"));
+	        String username;
+	        String password;
 
             for(int i = 0; i < 4; i++){
-                JSONObject userObj = (JSONObject) userJSON.get(i);
-                validUsers.add(new User((String)userObj.get("username"), (String)userObj.get("password")));
+                username = in.readLine();
+                password = in.readLine();
+                validUsers.add(new User(username, password));
+                //System.out.println("New user added: " + username + " " + password);
             }
 
         } catch (Exception e){
@@ -53,9 +54,11 @@ public class EchoServer {
         }
 	}
 
+
 	public static void serverMessage(String message){
 	    System.out.println(message);
     }
+
 
     public static void sendToAll(ClientThread sender, String message){
         for(ClientThread client : EchoServer.clients){
@@ -64,6 +67,7 @@ public class EchoServer {
             }
         }
     }
+
 
     public static boolean sendToUser(String recipient, String message){
         for(ClientThread client : EchoServer.clients){
@@ -76,6 +80,7 @@ public class EchoServer {
         return false;
     }
 
+
     public static boolean clientConnected(){
 	    if(numConnectedClients < MAX_CLIENTS) {
             numConnectedClients++;
@@ -84,6 +89,7 @@ public class EchoServer {
 	        return false;
         }
     }
+
 
     public static void clientDisconnected(){
 	    numConnectedClients--;

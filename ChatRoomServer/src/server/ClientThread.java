@@ -13,6 +13,7 @@ public class ClientThread extends Thread {
     private Socket socket;
     private BufferedReader ins; //from client
     private PrintStream outs; //to client
+    private User userObject;
 
     public ClientThread(Socket socket) {
         this.socket = socket;
@@ -30,7 +31,7 @@ public class ClientThread extends Thread {
             while (true) {
                 String line = ins.readLine(); //waits for input from the client
                 parseCommand(line);
-                if(logoutRequested){
+                if(logoutRequested || line == null){
                     socket.close();
                     throw new Exception(); //will trigger user logout
                 }
@@ -39,9 +40,10 @@ public class ClientThread extends Thread {
         } catch (Exception e) {
             //cleanup for all user disconnection handled the same through exceptions
             if(this.isLoggedIn) {
-                EchoServer.serverMessage(this.username + " left");
+                EchoServer.serverMessage(this.username + " logout");
                 EchoServer.sendToAll(this, this.username + " left");
                 EchoServer.clients.remove(this);
+                userObject.isLoggedIn = false;
                 EchoServer.clientDisconnected();
             }
             return;
@@ -75,11 +77,11 @@ public class ClientThread extends Thread {
                 break;
 
             case "who":
-                listUsers();
+                listUsers(tokens);
                 break;
 
             case "logout":
-                logout();
+                logout(tokens);
                 break;
 
             default:
@@ -105,11 +107,12 @@ public class ClientThread extends Thread {
                 if(user.password.equals(input[2])){
                     if(!user.isLoggedIn) {
                         if (EchoServer.clientConnected()) {
-                            setUsername(input[1]);
                             outs.println("Login Confirmed");
                             setUsername(user.username);
                             this.isLoggedIn = true;
                             user.isLoggedIn = true;
+
+                            userObject = user;
 
                             EchoServer.clients.add(this); //add client list so we can keep track of all clients
                             EchoServer.serverMessage(this.username + " login");
@@ -138,7 +141,7 @@ public class ClientThread extends Thread {
             return;
         }
 
-        String message = this.username + ":";
+        String message = "";
         String serverDialog = this.username + " (to " + input[1] + "):";
         for(int i = 2; i < input.length; i++){
             message += " " + input[i];
@@ -146,9 +149,11 @@ public class ClientThread extends Thread {
         }
 
         if(input[1].equalsIgnoreCase("all")){
+            message = this.username + ":" + message;
             EchoServer.sendToAll(this, message);
             EchoServer.serverMessage(message);
         } else {
+            message = this.username + " (to you):" + message;
             boolean success = EchoServer.sendToUser(input[1], message);
             if(success){
                 EchoServer.serverMessage(serverDialog);
@@ -159,7 +164,12 @@ public class ClientThread extends Thread {
         }
     }
 
-    private void listUsers() {
+    private void listUsers(String[] input) {
+        if(input.length > 1){
+            outs.println("Invalid - 'who' takes no arguments");
+            return;
+        }
+
         String usernames = EchoServer.clients.get(0).username;
 
         for(int i = 1; i < EchoServer.clients.size(); i++){
@@ -169,7 +179,12 @@ public class ClientThread extends Thread {
         outs.println(usernames);
     }
 
-    private void logout() {
+    private void logout(String[] input) {
+        if(input.length > 1){
+            outs.println("Invalid - 'logout' takes no arguments");
+            return;
+        }
+
         outs.println("Disconnected");
         logoutRequested = true;
     }
